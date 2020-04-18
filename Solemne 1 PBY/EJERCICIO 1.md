@@ -1,5 +1,5 @@
-## Ejercicio 1
-Creación de tabla para la parte A
+# Ejercicio 1
+**Creación de tabla para la parte A**
 ```sql
 CREATE TABLE RESPALDO1
 (
@@ -8,7 +8,7 @@ CREATE TABLE RESPALDO1
     COMISION REAL
 );
 ```
-Bloque PL/SQL
+**Bloque PL/SQL**
 ```sql
 DECLARE
     V_MEDICAMENTO        MEDICAMENTOS.NOMBRE_MED%TYPE;
@@ -40,7 +40,7 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE('Año de procesamiento: ' || EXTRACT(YEAR FROM SYSDATE)); -- TODO: revisar
 END;
 ```
-Comprobar parte A
+**Comprobar parte A**
 ```sql
 SELECT VENDEDOR,
        TO_CHAR(TOTAL, 'L99,999.00', 'NLS_CURRENCY = ''$''')    AS TOTAL,
