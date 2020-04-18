@@ -1,0 +1,36 @@
+# Ejercicio 2
+
+**Crear tabla**
+```sql
+CREATE TABLE INFORME  
+(  
+    SUCURSAL VARCHAR(30),  
+  PROMEDIO FLOAT,  
+  TOTAL FLOAT  
+);
+```
+**Bloque pl/sql**
+```sql
+BEGIN  
+ INSERT INTO INFORME(  
+        SELECT UPPER(NOM_SUC),  
+  AVG(MONTO_TOTAL),  
+  SUM(MONTO_TOTAL)  
+        FROM SUCURSAL  
+                 JOIN VENDEDORES V  
+                      ON V.SUCURSAL_COD_SUC = SUCURSAL.COD_SUC  
+  JOIN BOLETAS B  
+                      ON B.VENDEDORES_COD_VEN = V.COD_VEN  
+  HAVING SUM(MONTO_TOTAL) BETWEEN 40000 AND 60000  
+  GROUP BY NOM_SUC);  
+END;
+```
+**Comprobar ejercicio 2**
+```sql
+SELECT SUCURSAL,  
+  TO_CHAR(TOTAL, 'L99,999.00', 'NLS_CURRENCY = ''$''')    AS TOTAL,  
+  TO_CHAR(PROMEDIO, 'L99,999.00', 'NLS_CURRENCY = ''$''') AS PROMEDIO  
+FROM INFORME;
+
+DELETE FROM INFORME;
+```
