@@ -7,6 +7,12 @@ CREATE TABLE INFORME
     PROMEDIO      REAL
 );
 
+CREATE TABLE INFORMACION
+(
+    FECHA   DATE,
+    MENSAJE VARCHAR2(100)
+);
+
 DECLARE
     CURSOR SUCURSALES IS SELECT NOM_SUC                    SUCURSAL,
                                 COUNT(FOLIO) AS            TOTAL_BOLETAS,
@@ -16,6 +22,7 @@ DECLARE
                                        ON (SUCURSAL.COD_SUC = VENDEDORES.SUCURSAL_COD_SUC)
                                   JOIN BOLETAS
                                        ON (VENDEDORES.COD_VEN = BOLETAS.VENDEDORES_COD_VEN)
+                         WHERE NOM_SUC = 'ASD'
                          GROUP BY NOM_SUC;
     SALIDA SUCURSALES%ROWTYPE;
     CONT   INT := 0;
@@ -30,7 +37,11 @@ BEGIN
             FETCH SUCURSALES INTO SALIDA;
         END LOOP;
     CLOSE SUCURSALES;
-    DBMS_OUTPUT.PUT_LINE('Registros insertados: ' || CONT);
+    IF CONT = 0 THEN
+        INSERT INTO INFORMACION VALUES (SYSDATE, 'Sin información');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Registros insertados: ' || CONT);
+    END IF;
 EXCEPTION
     WHEN TOO_MANY_ROWS THEN
         DBMS_OUTPUT.PUT_LINE('Muchas filas');
@@ -38,3 +49,6 @@ END;
 
 SELECT *
 FROM INFORME;
+
+SELECT *
+FROM INFORMACION;
