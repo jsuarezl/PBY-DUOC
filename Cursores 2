@@ -1,0 +1,40 @@
+CREATE SEQUENCE IDENTIFICADOR;
+CREATE TABLE INFORME
+(
+    ID            INT PRIMARY KEY,
+    SUCURSAL      VARCHAR2(30),
+    TOTAL_BOLETAS INT,
+    PROMEDIO      REAL
+);
+
+DECLARE
+    CURSOR SUCURSALES IS SELECT NOM_SUC                    SUCURSAL,
+                                COUNT(FOLIO) AS            TOTAL_BOLETAS,
+                                ROUND(AVG(MONTO_TOTAL), 2) VENTAS_PROMEDIO
+                         FROM SUCURSAL
+                                  JOIN VENDEDORES
+                                       ON (SUCURSAL.COD_SUC = VENDEDORES.SUCURSAL_COD_SUC)
+                                  JOIN BOLETAS
+                                       ON (VENDEDORES.COD_VEN = BOLETAS.VENDEDORES_COD_VEN)
+                         GROUP BY NOM_SUC;
+    SALIDA SUCURSALES%ROWTYPE;
+    CONT   INT := 0;
+BEGIN
+    OPEN SUCURSALES;
+    FETCH SUCURSALES INTO SALIDA;
+    WHILE SUCURSALES%FOUND
+        LOOP
+            INSERT INTO INFORME
+            VALUES (IDENTIFICADOR.NEXTVAL, SALIDA.SUCURSAL, SALIDA.TOTAL_BOLETAS, SALIDA.VENTAS_PROMEDIO);
+            CONT := CONT + 1;
+            FETCH SUCURSALES INTO SALIDA;
+        END LOOP;
+    CLOSE SUCURSALES;
+    DBMS_OUTPUT.PUT_LINE('Registros insertados: ' || CONT);
+EXCEPTION
+    WHEN TOO_MANY_ROWS THEN
+        DBMS_OUTPUT.PUT_LINE('Muchas filas');
+END;
+
+SELECT *
+FROM INFORME;
