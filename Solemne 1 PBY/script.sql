@@ -1,0 +1,119 @@
+CREATE TABLE RESPALDO1
+(
+    VENDEDOR VARCHAR2(30),
+    TOTAL    REAL,
+    COMISION REAL
+);
+
+DECLARE
+V_MEDICAMENTO        MEDICAMENTOS.NOMBRE_MED%TYPE;
+    V_CANTIDAD           INT := 0;
+    V_ANIO_PROCESAMIENTO INT := 0;
+BEGIN
+    -- PARTE A
+INSERT INTO RESPALDO1(SELECT UPPER(NOM_VEN),
+                             SUM(MONTO_TOTAL),
+                             SUM(MONTO_TOTAL * .05)
+                      FROM VENDEDORES
+                               JOIN BOLETAS B ON VENDEDORES.COD_VEN = B.VENDEDORES_COD_VEN
+                      WHERE MONTO_TOTAL > 35000
+                      GROUP BY NOM_VEN);
+
+-- PARTE B
+SELECT NOMBRE_MED, COUNT(MEDICAMENTOS_ID_MED) AS CANTIDAD
+INTO V_MEDICAMENTO, V_CANTIDAD
+FROM MEDICAMENTOS
+         JOIN BOLETAS B2 ON MEDICAMENTOS.ID_MED = B2.MEDICAMENTOS_ID_MED
+HAVING COUNT(MEDICAMENTOS_ID_MED) = (SELECT MAX(CANTIDAD)
+                                     FROM (SELECT COUNT(MEDICAMENTOS_ID_MED) AS CANTIDAD
+                                           FROM BOLETAS
+                                           GROUP BY MEDICAMENTOS_ID_MED))
+    GROUP BY NOMBRE_MED
+ORDER BY CANTIDAD DESC;
+DBMS_OUTPUT.PUT_LINE('Medicamento más vendido: ' || UPPER(V_MEDICAMENTO));
+    DBMS_OUTPUT.PUT_LINE('Cantidad de ventas: ' || V_CANTIDAD);
+    DBMS_OUTPUT.PUT_LINE('Año de procesamiento: ' || EXTRACT(YEAR FROM SYSDATE)); -- TODO: revisar
+END;
+
+SELECT VENDEDOR,
+       TO_CHAR(TOTAL, 'L99,999.00', 'NLS_CURRENCY = ''$''')    AS TOTAL,
+       TO_CHAR(COMISION, 'L99,999.00', 'NLS_CURRENCY = ''$''') AS COMISION
+FROM RESPALDO1;
+
+DELETE FROM RESPALDO1;
+
+
+CREATE TABLE INFORME
+(
+    SUCURSAL VARCHAR(30),
+    PROMEDIO FLOAT,
+    TOTAL FLOAT
+);
+
+BEGIN
+INSERT INTO INFORME(
+    SELECT UPPER(NOM_SUC),
+           AVG(MONTO_TOTAL),
+           SUM(MONTO_TOTAL)
+    FROM SUCURSAL
+             JOIN VENDEDORES V
+                  ON V.SUCURSAL_COD_SUC = SUCURSAL.COD_SUC
+             JOIN BOLETAS B
+                  ON B.VENDEDORES_COD_VEN = V.COD_VEN
+    HAVING SUM(MONTO_TOTAL) BETWEEN 40000 AND 60000
+        GROUP BY NOM_SUC);
+END;
+
+SELECT SUCURSAL,
+       TO_CHAR(TOTAL, 'L99,999.00', 'NLS_CURRENCY = ''$''')    AS TOTAL,
+       TO_CHAR(PROMEDIO, 'L99,999.00', 'NLS_CURRENCY = ''$''') AS PROMEDIO
+FROM INFORME;
+
+DELETE FROM INFORME;
+
+DECLARE
+V_ID_FAR     INT;
+    V_FARMACIA   VARCHAR2(50);
+    V_SUCURSAL   VARCHAR2(50);
+    V_GERENTE    VARCHAR2(50);
+    V_VENDEDORES NUMBER;
+    V_COD_SUC    NUMBER := 3; -- Modificar a 100
+BEGIN
+SELECT FRM.NOM_FAR FARMACIA, SUC.NOM_SUC SUCURSAL, COUNT(VND.COD_VEN) VENDEDORES
+INTO V_FARMACIA, V_SUCURSAL, V_VENDEDORES
+FROM SUCURSAL SUC
+         JOIN VENDEDORES VND ON SUC.COD_SUC = VND.SUCURSAL_COD_SUC
+         JOIN FARMACIA FRM ON SUC.FARMACIA_ID_FAR = FRM.ID_FAR
+WHERE COD_SUC = V_COD_SUC /* Eliminar where */
+GROUP BY FRM.NOM_FAR, SUC.NOM_SUC;
+DBMS_OUTPUT.PUT_LINE('------------------------------');
+    DBMS_OUTPUT.PUT_LINE('Codigo Sucursal: ' || V_COD_SUC);
+    DBMS_OUTPUT.PUT_LINE('Farmacia: ' || V_FARMACIA);
+    DBMS_OUTPUT.PUT_LINE('Sucursal: ' || V_SUCURSAL);
+    DBMS_OUTPUT.PUT_LINE('Vendedores: ' || V_VENDEDORES);
+    DBMS_OUTPUT.PUT_LINE('------------------------------');
+FOR INICIO IN (
+        SELECT ID_FAR, NOM_FAR, GERENTE, NOM_SUC
+        INTO V_ID_FAR, V_FARMACIA,V_GERENTE,V_SUCURSAL
+        FROM SUCURSAL
+                 RIGHT JOIN FARMACIA F ON SUCURSAL.FARMACIA_ID_FAR = F.ID_FAR)
+        LOOP
+            IF INICIO.NOM_FAR IS NULL THEN
+                DBMS_OUTPUT.PUT_LINE('------------------------------');
+                DBMS_OUTPUT.PUT_LINE('Farmacia sin nombre, id: ' || INICIO.ID_FAR);
+                DBMS_OUTPUT.PUT_LINE('Sucursal: ' || UPPER(NVL(INICIO.NOM_SUC, 'Sin sucursal')));
+                DBMS_OUTPUT.PUT_LINE('Gerente: ' || UPPER(INICIO.GERENTE));
+                DBMS_OUTPUT.PUT_LINE('------------------------------');
+ELSE
+                DBMS_OUTPUT.PUT_LINE('------------------------------');
+                DBMS_OUTPUT.PUT_LINE('Farmacia: ' || UPPER(INICIO.NOM_FAR));
+                DBMS_OUTPUT.PUT_LINE('Sucursal: ' || UPPER(NVL(INICIO.NOM_SUC, 'Sin sucursal')));
+                DBMS_OUTPUT.PUT_LINE('------------------------------');
+END IF;
+END LOOP;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No se encontraron los datos consultados');
+WHEN TOO_MANY_ROWS THEN
+        DBMS_OUTPUT.PUT_LINE('La consulta select devuelve más de 1 línea');
+END;
